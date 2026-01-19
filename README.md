@@ -1,30 +1,51 @@
 # mpv-clip
-Encode a clip of the current file
 
-# Requirements
-`ffmpeg`, `ffprobe`, optionally `socat` and `lua` (for `block_exit = false`), and `youtube-dl` 
-(for ytdl support, duh) are required to be in the `$PATH`.
-Posix `|` pipes need to be functional for youtube-dl and `block_exit = false` support.
+Extract clips from videos in mpv using ffmpeg.
 
-# Usage
-Place `clip.lua` in your `~/.config/mpv/scripts/` or `~/.mpv/scripts/` folder to autoload the 
-script.
+## Installation
 
-Adjust the script options via your mpv.conf or directly in the script to your liking.
-
-The script is binding itself to the `c`, `C`, and `ctrl+C` keys (not overriding your `input.conf`).
-The default keys can be changed in the script, or you can register the script in your `input.conf`:
-```
-c script_binding clip-start
-C script_binding clip-end
-ctrl+C script_binding clip-encode
+```bash
+git clone https://github.com/gustavomoura628/mpv-clip ~/.config/mpv/scripts/mpv-clip
 ```
 
-`c` Sets the start point of the clip, `C` sets the end point, and `ctrl+C` starts the encode.
+## Usage
 
-# Limitations
-To get milisecond precision seeking working, seeking is done with the slow input seeking method.
-This means, that the current file is decoded and discarded upto the start point.
+1. **Set start point**: Press `c` to mark where the clip begins
+2. **Set end point**: Press `C` (Shift+c) to mark where the clip ends
+3. **Encode**: Press `Ctrl+e` to start encoding
 
-Metadata handling only copies the global metadata, embedded fonts etc. are not (yet!) copied.
-Chapters also don't get their time-stamp adjusted.
+The clip will be saved in the directory where mpv was launched.
+
+## Default Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `key_set_start_frame` | `c` | Key to set clip start |
+| `key_set_stop_frame` | `C` | Key to set clip end |
+| `key_start_encode` | `Ctrl+e` | Key to start encoding |
+| `audio_codec` | `libopus` | Audio codec |
+| `audio_bitrate` | `192k` | Audio bitrate |
+| `video_codec` | `libx265` | Video codec |
+| `video_crf` | `24` | Video quality (lower = better) |
+| `video_pixel_format` | `yuv420p10` | Pixel format |
+| `output_directory` | `.` | Output directory (current dir) |
+| `encoding_preset` | `medium` | ffmpeg encoding preset |
+
+## Configuration
+
+Create `~/.config/mpv/script-opts/clip.conf` to override defaults:
+
+```
+key_start_encode=Ctrl+c
+output_directory=/tmp
+video_crf=20
+```
+
+## Requirements
+
+- mpv
+- ffmpeg
+
+## License
+
+GPL-3.0

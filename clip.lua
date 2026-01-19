@@ -26,7 +26,7 @@ local o = {
 	-- Key bindings
 	key_set_start_frame = "c",
 	key_set_stop_frame = "C",
-	key_start_encode = "ctrl+C",
+	key_start_encode = "Ctrl+e",
 
 	-- Audio settings
 	audio_codec = "libopus",
@@ -42,10 +42,8 @@ local o = {
 
 	-- Misc settings
 	encoding_preset = "medium", -- empty for no preset
-	output_directory = "/tmp",
+	output_directory = ".",
 	clear_start_stop_on_encode = true,
-	block_exit = false, -- stop mpv from quitting before the encode finished, if false…
-		-- …mpv will quit but ffmpeg will be kept alive
 }
 options.read_options(o)
 
@@ -54,7 +52,8 @@ local start_frame = nil
 local stop_frame = nil
 
 function encode()
-	if not start_frame then 
+	print("[clip] Encoding triggered")
+	if not start_frame then
 		mp.osd_message("No start frame set!")
 		return
 	end
@@ -107,22 +106,22 @@ function encode()
 	local time = os.time()
 
 	mp.osd_message("Starting encode from "..saf.." to "..sof.." into "..out, 3.5)
-	if o.block_exit then
-		os.execute(command)
-		mp.osd_message("Finished encode of "..out.." in "..os.time()-time.." seconds", 3.5)
-	else
-		-- FIXME: Won't work on Windows, because of special snowflake pipe naming
-		local ipc = mp.get_property("input-ipc-server")
-		local del_tmp = ""
-		if ipc == "" then
-			ipc = os.tmpname()
-			mp.set_property("input-ipc-server", ipc)
-			del_tmp = " && lua -e 'os.remove(\""..ipc.."\")'"
+	print("[clip] Running: " .. command)
+
+	mp.command_native_async({
+		name = "subprocess",
+		args = {"sh", "-c", command},
+		playback_only = false,
+	}, function(success, result)
+		if success and result.status == 0 then
+			local elapsed = os.time() - time
+			mp.osd_message("Finished encode of "..out.." in "..elapsed.." seconds", 3.5)
+			print("[clip] Finished: " .. out .. " in " .. elapsed .. "s")
+		else
+			mp.osd_message("Encode failed!", 3.5)
+			print("[clip] Encode failed with status: " .. (result.status or "unknown"))
 		end
-		os.execute(command..' && echo "{ \\"command\\": [\\"show-text\\", \\"Finished encode of \''
-			..out..'\' in $(lua -e "print(os.time()-'..time..')") seconds\\", 3500] }" | socat - '
-			..ipc..del_tmp.." &")
-	end
+	end)
 end
 
 -- Start frame key binding
@@ -145,9 +144,10 @@ mp.add_key_binding(o.key_set_stop_frame, "clip-end",
 		end
 	end)
 -- Start encode key binding
+print("[clip] Loaded - encode: " .. o.key_start_encode .. ", start: " .. o.key_set_start_frame .. ", end: " .. o.key_set_stop_frame)
 mp.add_key_binding(o.key_start_encode, "clip-encode",
 	function()
-		encode()	
+		encode()
 	end)
 
 -- Reset start/stop frame when a new file is loaded
